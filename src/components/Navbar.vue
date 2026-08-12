@@ -33,7 +33,11 @@ import { useContentStore } from '@/stores/content'
 
 const contentStore = useContentStore()
 const navbar = computed(() => contentStore.content.navbar)
+const sections = computed(() => contentStore.content.sections)
 const whatsappNumber = computed(() => contentStore.content.site.whatsappNumber)
+
+// Mostra todos os itens da navbar (admin controla quais exibir)
+const activeNavItems = computed(() => navbar.value.items)
 
 const whatsappLink = computed(() => {
   const msg = encodeURIComponent('Olá Dra. Renata! Gostaria de agendar uma consulta.')
@@ -51,8 +55,9 @@ const handleScroll = () => {
   lastScroll = y
 
   // Detect active section
-  const sections = ['home', ...navbar.value.items.map((i) => i.target)]
-  for (const id of sections) {
+  const sectionIds = navbar.value.items.map(i => i.target)
+  const ids = ['home', ...sectionIds]
+  for (const id of ids) {
     const el = document.getElementById(id)
     if (el) {
       const rect = el.getBoundingClientRect()
@@ -64,8 +69,23 @@ const handleScroll = () => {
   }
 }
 
-const scrollTo = (id) => {
-  const el = document.getElementById(id)
+const scrollTo = (targetId) => {
+  // Tenta encontrar a seção pelo target
+  const section = sections.value.find(s => {
+    if (s.id === targetId) return true
+    const typeMap = {
+      'sobre': ['about-section', 'perspective'],
+      'diferenciais': ['approach'],
+      'agenda': ['schedule'],
+      'depoimentos': ['reviews'],
+      'servicos': ['services'],
+      'beneficios': ['benefits'],
+      'faq': ['faq']
+    }
+    return typeMap[targetId]?.includes(s.type)
+  })
+  
+  const el = document.getElementById(section?.id || targetId)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
@@ -81,7 +101,9 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   z-index: 1000;
   padding: 1.2rem 0;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  background: transparent;
+  background: rgba(107, 58, 46, 0.95); /* Background escuro inicial para contraste */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 /* ═══ NAV CONTAINER (rounded pill when scrolled) ═══ */
 .nav-container {

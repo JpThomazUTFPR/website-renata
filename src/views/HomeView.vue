@@ -110,21 +110,46 @@
         </div>
       </section>
 
-      <!-- AGENDA -->
-      <section v-else-if="section.type === 'schedule'" class="schedule-section" :id="section.id">
+      <!-- SERVIÇOS -->
+      <section v-else-if="section.type === 'services'" class="services-section" :id="section.id">
+        <div class="section-bg-text">{{ section.title }}</div>
         <div class="container">
           <span class="section-label" data-reveal>{{ section.content.label }}</span>
-          <h2 class="schedule-title" data-reveal v-html="section.content.heading"></h2>
-          <p class="schedule-desc" data-reveal>{{ section.content.description }}</p>
-          <div class="schedule-calendar" data-reveal>
-            <iframe :src="section.content.calendarUrl" style="border:0" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
+          <h2 class="services-title" data-reveal v-html="section.content.heading"></h2>
+          <p class="services-subtitle" data-reveal>{{ section.content.subtitle }}</p>
+          <div class="services-grid">
+            <div class="service-card" v-for="(item, i) in section.content.items" :key="i" data-reveal>
+              <div class="service-icon"><i :class="item.icon"></i></div>
+              <h3 class="service-name">{{ item.title }}</h3>
+              <p class="service-desc">{{ item.description }}</p>
+              <div class="service-price">{{ item.price }}</div>
+            </div>
           </div>
-          <div class="schedule-cta" data-reveal>
-            <a :href="whatsappLink" target="_blank" class="hero-cta">
-              <span><i class="bi bi-whatsapp me-2"></i>Agendar pelo WhatsApp</span>
-              <div class="cta-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></div>
-            </a>
+        </div>
+      </section>
+
+      <!-- BENEFÍCIOS DA TERAPIA -->
+      <section v-else-if="section.type === 'benefits'" class="benefits-section" :id="section.id">
+        <div class="section-bg-text">{{ section.title }}</div>
+        <div class="container">
+          <span class="section-label" data-reveal>{{ section.content.label }}</span>
+          <h2 class="benefits-title" data-reveal v-html="section.content.heading"></h2>
+          <p class="benefits-intro" data-reveal>{{ section.content.intro }}</p>
+          <div class="benefits-grid">
+            <div class="benefit-card" v-for="(b, i) in section.content.items" :key="i" data-reveal>
+              <div class="benefit-icon"><i :class="b.icon"></i></div>
+              <h3 class="benefit-name">{{ b.title }}</h3>
+              <p class="benefit-desc">{{ b.desc }}</p>
+            </div>
           </div>
+        </div>
+      </section>
+
+      <!-- AGENDA -->
+      <section v-else-if="section.type === 'schedule'" class="schedule-section" :id="section.id">
+        <div class="section-bg-text">{{ section.title }}</div>
+        <div class="container">
+          <ScheduleWidget :section="section" data-reveal />
         </div>
       </section>
 
@@ -154,6 +179,44 @@
         </div>
       </section>
 
+      <!-- SOBRE MIM (Integrado) -->
+      <section v-else-if="section.type === 'about-section'" class="about-integrated-section" :id="section.id">
+        <div class="section-bg-text">{{ section.title }}</div>
+        <div class="container">
+          <div class="about-row">
+            <div class="about-visual" data-reveal>
+              <div class="about-portrait-wrap">
+                <img :src="section.content.image || 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&h=700&fit=crop'" alt="Dra. Renata" class="about-portrait" />
+                <div class="about-border-tl"></div>
+              </div>
+            </div>
+            <div class="about-content">
+              <span class="section-label" data-reveal>{{ section.content.label }}</span>
+              <h2 class="about-title" data-reveal v-html="section.content.heading"></h2>
+              <p class="about-text" data-reveal>{{ section.content.text }}</p>
+              
+              <div class="about-approaches" v-if="section.content.approaches && section.content.approaches.length">
+                <h3 class="approaches-title" data-reveal>{{ section.content.approachTitle || 'Minha Abordagem' }}</h3>
+                <div class="approach-cards">
+                  <div class="approach-card" v-for="(a, i) in section.content.approaches" :key="i" data-reveal>
+                    <div class="approach-icon"><i :class="a.icon"></i></div>
+                    <h4>{{ a.title }}</h4>
+                    <p>{{ a.desc }}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div data-reveal>
+                <a :href="whatsappLink" target="_blank" class="hero-cta">
+                  <span>{{ hero.ctaLabel }}</span>
+                  <div class="cta-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- FAQ -->
       <section v-else-if="section.type === 'faq'" class="faq-section" :id="section.id">
         <div class="section-bg-text">{{ section.title }}</div>
@@ -168,14 +231,16 @@
             </a>
           </div>
           <div class="faq-grid">
-            <div class="faq-item" v-for="(faq, i) in section.content.faqs" :key="i" :class="{ open: faq.open }" @click="faq.open = !faq.open" :data-reveal="true">
+            <div class="faq-item" v-for="(faq, i) in section.content.faqs" :key="i" :class="{ open: openFaqIndex === i }" @click="toggleFaq(i)" :data-reveal="true">
               <button class="faq-question">
                 <span>{{ faq.q }}</span>
-                <span class="faq-icon">{{ faq.open ? '−' : '+' }}</span>
+                <span class="faq-icon">{{ openFaqIndex === i ? '−' : '+' }}</span>
               </button>
-              <div class="faq-answer" v-show="faq.open">
-                <p>{{ faq.a }}</p>
-              </div>
+              <transition name="faq-expand">
+                <div class="faq-answer" v-if="openFaqIndex === i">
+                  <p>{{ faq.a }}</p>
+                </div>
+              </transition>
             </div>
           </div>
         </div>
@@ -211,8 +276,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useContentStore } from '@/stores/content'
+import ScheduleWidget from '@/components/ScheduleWidget.vue'
 
 const contentStore = useContentStore()
 const content = contentStore.content
@@ -225,9 +291,19 @@ const whatsappLink = computed(() => {
 const hero = computed(() => content.hero)
 const enabledSections = computed(() => content.sections.filter((s) => s.enabled))
 
+// Estado para controlar FAQ aberto
+const openFaqIndex = ref(null)
+
+function toggleFaq(index) {
+  openFaqIndex.value = openFaqIndex.value === index ? null : index
+}
+
 // ═══ SCROLL REVEAL ANIMATION ═══
 let observer = null
-onMounted(() => {
+onMounted(async () => {
+  // Inicializa o content store (carrega do AppWrite)
+  await contentStore.init()
+  
   observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -501,6 +577,40 @@ onUnmounted(() => {
 .pillar-body p { color: var(--text-light); margin: 0; line-height: 1.5; font-size: 0.95rem; }
 
 /* ═══ SCHEDULE ═══ */
+/* ═══ SERVIÇOS ═══ */
+.services-section { padding: 120px 0; background: var(--bg); text-align: center; }
+.services-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 4vw, 3rem); margin-bottom: 1rem;
+}
+.services-subtitle { color: var(--text-light); margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+.services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+.service-card {
+  background: #FFF; padding: 2.5rem; border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(107,58,46,0.06); transition: transform 0.3s ease;
+}
+.service-card:hover { transform: translateY(-5px); }
+.service-icon {
+  width: 60px; height: 60px; background: var(--accent-light);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.5rem; font-size: 1.5rem; color: var(--wine);
+}
+.service-name { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-bottom: 1rem; }
+.service-desc { color: var(--text-light); line-height: 1.6; margin-bottom: 1.5rem; }
+.service-price { font-weight: 700; color: var(--wine); font-size: 1.1rem; }
+
+/* ═══ BENEFITS ═══ */
+.benefits-section { padding: 120px 0; background: var(--white); text-align: center; }
+.benefits-title { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 4vw, 3rem); margin-bottom: 1rem; }
+.benefits-intro { color: var(--text-light); margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+.benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+.benefit-card { background: #FFF; padding: 2rem; border-radius: 16px; border: 1px solid rgba(107,58,46,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.benefit-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(107,58,46,0.1); }
+.benefit-icon { width: 60px; height: 60px; background: var(--accent-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: var(--wine); }
+.benefit-name { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--wine); margin-bottom: 0.8rem; }
+.benefit-desc { color: var(--text-light); line-height: 1.6; font-size: 0.95rem; }
+
+/* ═══ AGENDA ═══ */
 .schedule-section { padding: 120px 0; background: var(--bg); text-align: center; }
 .schedule-title {
   font-family: 'Playfair Display', serif;
@@ -541,6 +651,50 @@ onUnmounted(() => {
 .review-name { display: block; font-weight: 700; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wine); }
 .review-source { font-size: 0.65rem; color: var(--accent-dark); }
 
+/* ═══ SOBRE MIM INTEGRADO ═══ */
+.about-integrated-section { position: relative; padding: 120px 0; overflow: hidden; background: var(--bg-alt); }
+.about-row { display: flex; gap: 4rem; align-items: center; max-width: 1200px; margin: 0 auto; }
+.about-visual { flex: 0 0 400px; position: relative; }
+.about-portrait-wrap { position: relative; }
+.about-portrait {
+  width: 100%; height: 500px; object-fit: cover; border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(93,78,55,0.15);
+}
+.about-border-tl {
+  position: absolute; top: -15px; left: -15px; right: 15px; bottom: 15px;
+  border: 2px solid var(--accent); border-radius: 18px; z-index: -1;
+}
+.about-content { flex: 1; }
+.about-title {
+  font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.15; margin-bottom: 1.5rem; color: var(--wine);
+}
+.about-text {
+  font-size: 1.05rem; line-height: 1.8; color: var(--text);
+  margin-bottom: 2.5rem; font-weight: 300;
+}
+.about-approaches { margin-top: 2.5rem; }
+.approaches-title {
+  font-family: 'Playfair Display', serif; font-size: 1.5rem;
+  color: var(--wine); margin-bottom: 1.5rem;
+}
+.approach-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+.approach-card {
+  background: var(--bg); padding: 1.5rem; border-radius: 14px;
+  border: 1px solid rgba(201,168,130,0.15); transition: all 0.3s ease;
+}
+.approach-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(93,78,55,0.1); }
+.approach-icon {
+  width: 48px; height: 48px; border-radius: 12px; margin-bottom: 1rem;
+  background: var(--wine); color: #F8F4F0; display: flex; align-items: center;
+  justify-content: center; font-size: 1.3rem;
+}
+.approach-card h4 {
+  font-family: 'Playfair Display', serif; font-size: 1.1rem;
+  color: var(--wine); margin-bottom: 0.5rem;
+}
+.approach-card p { font-size: 0.9rem; color: var(--text-light); line-height: 1.6; margin: 0; }
+
 /* ═══ FAQ ═══ */
 .faq-section { position: relative; padding: 120px 0; background: var(--bg-alt); overflow: hidden; }
 .faq-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem; flex-wrap: wrap; gap: 1rem; position: relative; z-index: 1; }
@@ -567,8 +721,21 @@ onUnmounted(() => {
 .faq-question:hover { color: var(--wine); }
 .faq-icon { font-size: 1.2rem; opacity: 0.35; transition: opacity 0.3s ease; }
 .faq-item.open .faq-icon { opacity: 1; }
-.faq-answer { padding-bottom: 1.5rem; }
+.faq-answer { padding-bottom: 1.5rem; overflow: hidden; }
 .faq-answer p { color: var(--text-light); line-height: 1.7; margin: 0; font-weight: 300; }
+
+/* FAQ Expand Transition */
+.faq-expand-enter-active,
+.faq-expand-leave-active {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  opacity: 1;
+}
+.faq-expand-enter-from,
+.faq-expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
 
 /* ═══ CUSTOM SECTION (seções adicionadas pelo admin) ═══ */
 .custom-section { position: relative; padding: 120px 0; overflow: hidden; }

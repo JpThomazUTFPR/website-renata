@@ -40,9 +40,6 @@
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#sections-content" type="button"><i class="bi bi-stack me-2"></i>Seções</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#about-content" type="button"><i class="bi bi-person-badge me-2"></i>Sobre</button>
-          </li>
-          <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#services-content" type="button"><i class="bi bi-grid-1x2 me-2"></i>Serviços</button>
           </li>
           <li class="nav-item" role="presentation">
@@ -66,8 +63,16 @@
                       <input type="text" class="form-control" v-model="site.name" required>
                     </div>
                     <div class="col-md-6">
+                      <label class="form-label fw-semibold">Título da Página (aba do navegador)</label>
+                      <input type="text" class="form-control" v-model="site.pageTitle" placeholder="Dra. Renata - Psicóloga">
+                    </div>
+                    <div class="col-md-6">
                       <label class="form-label fw-semibold">CRP</label>
                       <input type="text" class="form-control" v-model="site.crp">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold">Favicon (URL da imagem)</label>
+                      <input type="text" class="form-control" v-model="site.favicon" placeholder="https://... ou deixe vazio para o padrão">
                     </div>
                     <div class="col-12">
                       <label class="form-label fw-semibold">Slogan / Tagline</label>
@@ -182,8 +187,11 @@
                       <label class="form-label fw-semibold">Tipo</label>
                       <select class="form-select" v-model="newSection.type">
                         <option value="custom">Personalizada (texto + cards)</option>
+                        <option value="about-section">Sobre Mim</option>
                         <option value="perspective">Perspectiva</option>
                         <option value="approach">Diferenciais</option>
+                        <option value="benefits">Benefícios da Terapia</option>
+                        <option value="services">Serviços</option>
                         <option value="schedule">Agenda</option>
                         <option value="reviews">Depoimentos</option>
                         <option value="faq">FAQ</option>
@@ -212,8 +220,11 @@
                       <div class="col-md-6"><label class="form-label">Tipo</label>
                         <select class="form-select form-select-sm" v-model="section.type" @change="ensureSectionContent(section)">
                           <option value="custom">Personalizada</option>
+                          <option value="about-section">Sobre Mim</option>
                           <option value="perspective">Perspectiva</option>
                           <option value="approach">Diferenciais</option>
+                          <option value="benefits">Benefícios da Terapia</option>
+                          <option value="services">Serviços</option>
                           <option value="schedule">Agenda</option>
                           <option value="reviews">Depoimentos</option>
                           <option value="faq">FAQ</option>
@@ -237,9 +248,43 @@
                       <label class="form-label">Título (HTML)</label>
                       <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.heading">
                       <label class="form-label">Descrição</label>
-                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.description">
-                      <label class="form-label">URL do Google Calendar</label>
-                      <input type="url" class="form-control form-control-sm" v-model="section.content.calendarUrl">
+                      <textarea class="form-control form-control-sm mb-3" rows="2" v-model="section.content.description"></textarea>
+                      
+                      <label class="form-label">Google Calendar (ICS/Embed)</label>
+                      <input type="url" class="form-control form-control-sm mb-1" v-model="section.content.googleCalendarUrl" placeholder="https://calendar.google.com/calendar/ical/.../public/basic.ics">
+                      <small class="text-muted d-block mb-3">
+                        <strong>Para integrar:</strong> No Google Calendar, vá em Configurações → seu calendário → "Disponibilizar publicamente" → copie o <em>Endereço público no formato iCal</em>.<br>
+                        Ou cole o link de incorporação (embed) que será convertido automaticamente.
+                      </small>
+                      
+                      <h6 class="mb-2"><i class="bi bi-clock me-2"></i>Horários de Atendimento (Seg-Sex)</h6>
+                      <small class="text-muted d-block mb-2">
+                        <i class="bi bi-info-circle me-1"></i> 
+                        <strong v-if="section.content.googleCalendarUrl">Google Calendar ativo:</strong>
+                        <strong v-else>Sem Google Calendar:</strong>
+                        <span v-if="section.content.googleCalendarUrl">a disponibilidade é controlada exclusivamente pelo Google Calendar. Eventos bloqueiam horários; horários sem evento ficam disponíveis.</span>
+                        <span v-else>marque abaixo os horários em que você atende.</span>
+                      </small>
+                      <div class="table-responsive">
+                        <table class="table table-sm table-bordered text-center align-middle">
+                          <thead class="table-light">
+                            <tr>
+                              <th>Hora</th>
+                              <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="hour in 9" :key="hour">
+                              <td>{{ hour + 8 }}:00</td>
+                              <td v-for="(day, dIndex) in ['seg', 'ter', 'qua', 'qui', 'sex']" :key="dIndex">
+                                <input type="checkbox" class="form-check-input" 
+                                  :checked="isScheduleAvailable(section, day, hour + 8)"
+                                  @change="toggleScheduleAvailability(section, day, hour + 8)">
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                     <div v-else-if="section.type === 'reviews'" class="mt-2">
                       <label class="form-label">Label</label>
@@ -247,13 +292,87 @@
                       <label class="form-label">Título (HTML)</label>
                       <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.heading">
                       <label class="form-label">Avaliação (ex: 5.0 / 5.0)</label>
-                      <input type="text" class="form-control form-control-sm" v-model="section.content.rating">
+                      <input type="text" class="form-control form-control-sm mb-3" v-model="section.content.rating">
+                      
+                      <label class="form-label fw-semibold">Depoimentos</label>
+                      <div v-for="(r, i) in section.content.reviews" :key="i" class="service-edit-card mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <span class="badge bg-secondary">Depoimento #{{ i + 1 }}</span>
+                          <div>
+                            <button type="button" class="btn btn-sm btn-light me-1" :disabled="i===0" @click="swapReviews(section.content.reviews, i, i-1)" title="Subir"><i class="bi bi-arrow-up"></i></button>
+                            <button type="button" class="btn btn-sm btn-light me-1" :disabled="i===section.content.reviews.length-1" @click="swapReviews(section.content.reviews, i, i+1)" title="Descer"><i class="bi bi-arrow-down"></i></button>
+                            <button type="button" class="btn btn-sm btn-link text-danger" @click="section.content.reviews.splice(i,1)"><i class="bi bi-trash"></i></button>
+                          </div>
+                        </div>
+                        <input type="text" class="form-control form-control-sm mb-1" placeholder="Nome" v-model="r.name">
+                        <textarea class="form-control form-control-sm mb-1" rows="3" placeholder="Texto do depoimento" v-model="r.text"></textarea>
+                        <input type="text" class="form-control form-control-sm" placeholder="Origem (ex: via Google)" v-model="r.source">
+                      </div>
+                      <button type="button" class="btn btn-add btn-sm" @click="section.content.reviews.push({ name: '', text: '', source: 'via Google' })"><i class="bi bi-plus-lg me-1"></i>Adicionar Depoimento</button>
                     </div>
                     <div v-else-if="section.type === 'faq'" class="mt-2">
                       <label class="form-label">Label</label>
                       <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.label">
                       <label class="form-label">Título (HTML)</label>
-                      <input type="text" class="form-control form-control-sm" v-model="section.content.heading">
+                      <input type="text" class="form-control form-control-sm mb-3" v-model="section.content.heading">
+                      
+                      <label class="form-label fw-semibold">Perguntas e Respostas</label>
+                      <div v-for="(f, i) in section.content.faqs" :key="i" class="service-edit-card mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <span class="badge bg-secondary">FAQ #{{ i + 1 }}</span>
+                          <div>
+                            <button type="button" class="btn btn-sm btn-light me-1" :disabled="i===0" @click="swapFaqs(section.content.faqs, i, i-1)" title="Subir"><i class="bi bi-arrow-up"></i></button>
+                            <button type="button" class="btn btn-sm btn-light me-1" :disabled="i===section.content.faqs.length-1" @click="swapFaqs(section.content.faqs, i, i+1)" title="Descer"><i class="bi bi-arrow-down"></i></button>
+                            <button type="button" class="btn btn-sm btn-link text-danger" @click="section.content.faqs.splice(i,1)"><i class="bi bi-trash"></i></button>
+                          </div>
+                        </div>
+                        <input type="text" class="form-control form-control-sm mb-1" placeholder="Pergunta" v-model="f.q">
+                        <textarea class="form-control form-control-sm" rows="3" placeholder="Resposta" v-model="f.a"></textarea>
+                      </div>
+                      <button type="button" class="btn btn-add btn-sm" @click="section.content.faqs.push({ q: '', a: '' })"><i class="bi bi-plus-lg me-1"></i>Adicionar Pergunta</button>
+                    </div>
+                    <div v-else-if="section.type === 'services'" class="mt-2">
+                      <label class="form-label">Label</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.label">
+                      <label class="form-label">Título (HTML)</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.heading">
+                      <label class="form-label">Subtítulo</label>
+                      <input type="text" class="form-control form-control-sm mb-3" v-model="section.content.subtitle">
+                      <label class="form-label fw-semibold">Serviços</label>
+                      <div v-for="(s, i) in section.content.items" :key="i" class="service-edit-card mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <span class="badge bg-secondary">Serviço #{{ i + 1 }}</span>
+                          <button type="button" class="btn btn-sm btn-link text-danger" @click="section.content.items.splice(i,1)"><i class="bi bi-trash"></i></button>
+                        </div>
+                        <div class="row g-1">
+                          <div class="col-3"><input type="text" class="form-control form-control-sm" placeholder="Ícone" v-model="s.icon"></div>
+                          <div class="col-9"><input type="text" class="form-control form-control-sm" placeholder="Título" v-model="s.title"></div>
+                        </div>
+                        <textarea class="form-control form-control-sm mt-1" rows="2" placeholder="Descrição" v-model="s.description"></textarea>
+                        <input type="text" class="form-control form-control-sm mt-1" placeholder="Preço (ex: R$ 200/sessão)" v-model="s.price">
+                      </div>
+                      <button type="button" class="btn btn-add btn-sm" @click="section.content.items.push({ icon: 'bi bi-star', title: '', description: '', price: '' })"><i class="bi bi-plus-lg me-1"></i>Adicionar Serviço</button>
+                    </div>
+                    <div v-else-if="section.type === 'benefits'" class="mt-2">
+                      <label class="form-label">Label</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.label">
+                      <label class="form-label">Título (HTML)</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.heading">
+                      <label class="form-label">Texto Introdutório</label>
+                      <textarea class="form-control form-control-sm mb-3" rows="2" v-model="section.content.intro"></textarea>
+                      <label class="form-label fw-semibold">Benefícios</label>
+                      <div v-for="(b, i) in section.content.items" :key="i" class="service-edit-card mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <span class="badge bg-secondary">Benefício #{{ i + 1 }}</span>
+                          <button type="button" class="btn btn-sm btn-link text-danger" @click="section.content.items.splice(i,1)"><i class="bi bi-trash"></i></button>
+                        </div>
+                        <div class="row g-1">
+                          <div class="col-3"><input type="text" class="form-control form-control-sm" placeholder="Ícone" v-model="b.icon"></div>
+                          <div class="col-9"><input type="text" class="form-control form-control-sm" placeholder="Título" v-model="b.title"></div>
+                        </div>
+                        <textarea class="form-control form-control-sm mt-1" rows="2" placeholder="Descrição" v-model="b.desc"></textarea>
+                      </div>
+                      <button type="button" class="btn btn-add btn-sm" @click="section.content.items.push({ icon: 'bi bi-star', title: '', desc: '' })"><i class="bi bi-plus-lg me-1"></i>Adicionar Benefício</button>
                     </div>
                     <div v-else-if="section.type === 'perspective'" class="mt-2">
                       <label class="form-label">Label</label>
@@ -273,52 +392,27 @@
                       <label class="form-label">Introdução</label>
                       <textarea class="form-control form-control-sm" rows="2" v-model="section.content.intro"></textarea>
                     </div>
+                    <div v-else-if="section.type === 'about-section'" class="mt-2">
+                      <label class="form-label">Label</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.label">
+                      <label class="form-label">Título</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.heading">
+                      <label class="form-label">Texto Principal</label>
+                      <textarea class="form-control form-control-sm mb-2" rows="4" v-model="section.content.text"></textarea>
+                      <label class="form-label">URL da Imagem</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.image">
+                      <label class="form-label">Título da Abordagem</label>
+                      <input type="text" class="form-control form-control-sm mb-2" v-model="section.content.approachTitle">
+                      <label class="form-label fw-semibold mt-2">Abordagens</label>
+                      <div v-for="(a, i) in section.content.approaches" :key="i" class="service-edit-card mb-2">
+                        <div class="mb-1"><input type="text" class="form-control form-control-sm mb-1" placeholder="Ícone (ex: bi bi-brain)" v-model="a.icon"></div>
+                        <div class="mb-1"><input type="text" class="form-control form-control-sm mb-1" placeholder="Título" v-model="a.title"></div>
+                        <textarea class="form-control form-control-sm" rows="2" placeholder="Descrição" v-model="a.desc"></textarea>
+                        <button type="button" class="btn btn-sm btn-link text-danger mt-1" @click="section.content.approaches.splice(i,1)"><i class="bi bi-trash me-1"></i>Remover</button>
+                      </div>
+                      <button type="button" class="btn btn-add btn-sm" @click="section.content.approaches.push({ icon: 'bi bi-star', title: '', desc: '' })"><i class="bi bi-plus-lg me-1"></i>Adicionar Abordagem</button>
+                    </div>
                     <button type="button" class="btn btn-save btn-sm mt-3" :disabled="saving" @click="saveSections"><i class="bi bi-check2-circle me-1"></i>Salvar seções</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ═══ ABOUT ═══ -->
-          <div class="tab-pane fade" id="about-content">
-            <div class="row g-4">
-              <div class="col-lg-6">
-                <div class="editor-card">
-                  <div class="editor-card__head"><h3 class="editor-card__title"><i class="bi bi-person-badge me-2"></i>Editar Sobre</h3></div>
-                  <div class="editor-card__body">
-                    <form @submit.prevent="saveAbout">
-                      <div class="mb-3"><label class="form-label fw-semibold">Título</label><input type="text" class="form-control" v-model="about.title"></div>
-                      <div class="mb-3"><label class="form-label fw-semibold">Texto</label><textarea class="form-control" rows="5" v-model="about.text"></textarea></div>
-                      <div class="mb-3"><label class="form-label fw-semibold">Título da Abordagem</label><input type="text" class="form-control" v-model="about.approachTitle"></div>
-                      <div class="mb-2"><label class="form-label fw-semibold">Abordagens</label></div>
-                      <div v-for="(a, i) in about.approaches" :key="i" class="service-edit-card">
-                        <div class="mb-2"><input type="text" class="form-control form-control-sm mb-1" placeholder="Ícone (ex: bi bi-brain)" v-model="a.icon"><input type="text" class="form-control form-control-sm mb-1" placeholder="Título" v-model="a.title"><textarea class="form-control form-control-sm" rows="2" placeholder="Descrição" v-model="a.desc"></textarea></div>
-                        <button type="button" class="btn btn-sm btn-link text-danger" @click="about.approaches.splice(i,1)"><i class="bi bi-trash me-1"></i>Remover</button>
-                      </div>
-                      <button type="button" class="btn btn-add btn-sm mb-3" @click="about.approaches.push({ icon: 'bi bi-star', title: '', desc: '' })"><i class="bi bi-plus-lg me-1"></i>Adicionar</button>
-                      <div class="mb-3">
-                        <label class="form-label fw-semibold">Foto de Perfil</label>
-                        <div class="upload-zone upload-zone--avatar" :class="{ 'upload-zone--filled': about.image }">
-                          <img v-if="about.image" :src="about.image" class="upload-zone__preview upload-zone__preview--avatar" alt="">
-                          <div v-else class="upload-zone__placeholder"><i class="bi bi-person"></i><span>Foto</span></div>
-                          <input type="file" class="upload-zone__input" accept="image/*" @change="handleImageUpload($event, 'about')">
-                          <button v-if="about.image" type="button" class="upload-zone__remove btn btn-sm btn-light" @click="about.image = ''"><i class="bi bi-trash me-1"></i>Remover</button>
-                        </div>
-                      </div>
-                      <button type="submit" class="btn btn-save w-100" :disabled="saving"><i class="bi bi-check2-circle me-2"></i>Salvar Sobre</button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-6">
-                <div class="preview-card">
-                  <span class="preview-card__tag"><i class="bi bi-eye me-1"></i>Pré-visualização</span>
-                  <div class="about-preview">
-                    <img v-if="about.image" :src="about.image" class="about-preview__avatar" alt="">
-                    <div v-else class="about-preview__avatar about-preview__avatar--empty"><i class="bi bi-person"></i></div>
-                    <h5>{{ about.title }}</h5>
-                    <p class="about-preview__text">{{ about.text }}</p>
                   </div>
                 </div>
               </div>
@@ -480,7 +574,9 @@ function syncFromStore() {
 onMounted(async () => {
   await authStore.checkAuth()
   if (!authStore.isAuthenticated) { router.push('/login'); return }
-  await contentStore.fetchContent()
+  
+  // Inicializa o content store (carrega do AppWrite se disponível)
+  await contentStore.init()
   syncFromStore()
 })
 
@@ -488,15 +584,47 @@ onUnmounted(() => { if (toastTimer) clearTimeout(toastTimer) })
 
 const handleLogout = async () => { await authStore.logout(); router.push('/') }
 
+// Schedule helpers
+const isScheduleAvailable = (section, day, hour) => {
+  if (!section.content.schedule) return false
+  return section.content.schedule[day]?.includes(hour) || false
+}
+
+const toggleScheduleAvailability = (section, day, hour) => {
+  if (!section.content.schedule) section.content.schedule = {}
+  if (!section.content.schedule[day]) section.content.schedule[day] = []
+  
+  const index = section.content.schedule[day].indexOf(hour)
+  if (index > -1) {
+    section.content.schedule[day].splice(index, 1)
+  } else {
+    section.content.schedule[day].push(hour)
+    section.content.schedule[day].sort((a, b) => a - b)
+  }
+}
+
 const handleImageUpload = async (event, type) => {
   const file = event.target.files[0]
   if (!file) return
+  
+  showToast('success', 'Enviando imagem...')
   const result = await contentStore.uploadImage(file)
+  
   if (result.success) {
     if (type === 'hero') hero.image = result.url
     if (type === 'about') about.image = result.url
-    showToast('success', 'Imagem enviada!')
-  } else showToast('error', result.error)
+    
+    // Salva a alteração no AppWrite
+    if (type === 'hero') {
+      await saveHero()
+    } else if (type === 'about') {
+      await saveAbout()
+    }
+    
+    showToast('success', 'Imagem enviada e salva no AppWrite!')
+  } else {
+    showToast('error', result.error || 'Erro ao enviar imagem')
+  }
 }
 
 // Save helpers
@@ -504,7 +632,15 @@ async function persist(key, data) {
   saving.value = true
   const res = await contentStore.updateContent(key, data)
   saving.value = false
-  showToast(res.success ? 'success' : 'error', res.success ? 'Salvo com sucesso!' : res.error)
+  
+  if (res.success) {
+    // Força refresh do cache para que o front veja as mudanças imediatamente
+    await contentStore.refreshCache()
+    showToast('success', 'Salvo no AppWrite! Front atualizado.')
+  } else {
+    showToast('error', `Erro: ${res.error || 'Falha ao salvar'}`)
+  }
+  
   return res
 }
 
@@ -523,14 +659,58 @@ const saveContact = () => persist('contact', { ...contact })
 const saveFooter = () => persist('footer', { ctaLabel: footer.ctaLabel, ctaTitle: footer.ctaTitle, ctaButton: footer.ctaButton, social: footer.social, nav: footer.nav })
 
 // Sections
-const saveSections = () => { contentStore.content.sections = JSON.parse(JSON.stringify(sections)); contentStore.updateContent('sections', JSON.parse(JSON.stringify(sections))) }
-const toggleSection = (section) => { contentStore.toggleSection(section.id, section.enabled); showToast('success', `Seção ${section.enabled ? 'ativada' : 'desativada'}`) }
-const moveSection = (id, dir) => { contentStore.moveSection(id, dir); syncFromStore() }
-const removeSection = (section) => {
-  if (confirm(`Remover a seção "${section.title || section.type}"?`)) {
-    contentStore.removeSection(section.id); syncFromStore(); showToast('success', 'Seção removida')
+const saveSections = async () => { 
+  contentStore.content.sections = JSON.parse(JSON.stringify(sections))
+  const res = await contentStore.updateContent('sections', JSON.parse(JSON.stringify(sections)))
+  if (res.success) {
+    showToast('success', 'Seções salvas no AppWrite!')
+  } else {
+    showToast('error', `Erro ao salvar seções: ${res.error}`)
   }
 }
+
+const toggleSection = async (section) => { 
+  const res = await contentStore.toggleSection(section.id, section.enabled)
+  if (res.success) {
+    showToast('success', `Seção ${section.enabled ? 'ativada' : 'desativada'} no AppWrite`)
+  } else {
+    showToast('error', res.error || 'Erro ao alternar seção')
+  }
+}
+
+const moveSection = async (id, dir) => { 
+  const res = await contentStore.moveSection(id, dir)
+  if (res.success) {
+    syncFromStore()
+    showToast('success', 'Ordem das seções atualizada')
+  }
+}
+
+const removeSection = async (section) => {
+  if (confirm(`Remover a seção "${section.title || section.type}"?`)) {
+    const res = await contentStore.removeSection(section.id)
+    if (res.success) {
+      syncFromStore()
+      showToast('success', 'Seção removida do AppWrite')
+    } else {
+      showToast('error', res.error || 'Erro ao remover seção')
+    }
+  }
+}
+
+// Helper functions para reordenar reviews e FAQs
+function swapReviews(reviews, i, j) {
+  if (i >= 0 && j >= 0 && i < reviews.length && j < reviews.length) {
+    [reviews[i], reviews[j]] = [reviews[j], reviews[i]]
+  }
+}
+
+function swapFaqs(faqs, i, j) {
+  if (i >= 0 && j >= 0 && i < faqs.length && j < faqs.length) {
+    [faqs[i], faqs[j]] = [faqs[j], faqs[i]]
+  }
+}
+
 function ensureSectionContent(section) {
   if (!section.content) section.content = {}
   const t = section.type
@@ -540,16 +720,39 @@ function ensureSectionContent(section) {
   if (t === 'faq' && !section.content.heading) { section.content.label = 'Dúvidas Frequentes'; section.content.heading = 'Tudo o que você <span class="accent">precisa saber.</span>'; section.content.faqs = [] }
   if (t === 'perspective' && !section.content.heading) { section.content.label = 'Perspectiva & Cuidado'; section.content.heading = 'Você já considerou ou precisou buscar ajuda <span class="accent">psicológica?</span>'; section.content.image = ''; section.content.bullets = []; section.content.conclusion = '' }
   if (t === 'approach' && !section.content.heading) { section.content.label = 'O Diferencial'; section.content.heading = 'Um cuidado focado <span class="accent">na sua trajetória.</span>'; section.content.intro = ''; section.content.pillars = [] }
+  if (t === 'about-section' && !section.content.heading) { 
+    section.content.label = 'Conheça a Psicóloga'
+    section.content.heading = 'Dra. Renata'
+    section.content.text = 'Psicóloga clínica com atendimento humanizado...'
+    section.content.image = ''
+    section.content.approachTitle = 'Minha Abordagem'
+    section.content.approaches = []
+  }
+  if (t === 'services' && !section.content.heading) {
+    section.content.label = 'Modalidades'; section.content.heading = 'Ofereço diferentes <span class="accent">modalidades de atendimento.</span>'
+    section.content.subtitle = 'Escolha a que melhor se adapta às suas necessidades.'; section.content.items = []
+  }
+  if (t === 'benefits' && !section.content.heading) {
+    section.content.label = 'Por que fazer terapia?'; section.content.heading = 'O que a terapia pode <span class="accent">fazer por você.</span>'
+    section.content.intro = 'Cuidar da sua saúde mental é um ato de coragem e amor-próprio.'; section.content.items = []
+  }
 }
-const addNewSection = () => {
+const addNewSection = async () => {
   if (!newSection.title) { showToast('error', 'Informe um título'); return }
   const id = 'sec' + Date.now()
   const section = { id, type: newSection.type, title: newSection.title, enabled: true, content: {} }
   ensureSectionContent(section)
-  contentStore.addSection(section)
-  syncFromStore()
-  showToast('success', 'Seção adicionada')
-  newSection.title = ''; newSection.type = 'custom'; showAddSection.value = false
+  
+  const res = await contentStore.addSection(section)
+  if (res.success) {
+    syncFromStore()
+    showToast('success', 'Seção adicionada ao AppWrite')
+    newSection.title = ''
+    newSection.type = 'custom'
+    showAddSection.value = false
+  } else {
+    showToast('error', res.error || 'Erro ao adicionar seção')
+  }
 }
 </script>
 

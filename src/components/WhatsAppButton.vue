@@ -15,10 +15,17 @@
 
 <script setup>
 import { computed } from 'vue'
-const phoneNumber = '5511999999999'
+import { useContentStore } from '@/stores/content'
+
+const contentStore = useContentStore()
+
+const phoneNumber = computed(() => {
+  return contentStore.content.site.whatsappNumber || '5511999999999'
+})
+
 const whatsappLink = computed(() => {
   const msg = encodeURIComponent('Olá Dra. Renata! Gostaria de agendar uma consulta.')
-  return `https://wa.me/${phoneNumber}?text=${msg}`
+  return `https://wa.me/${phoneNumber.value}?text=${msg}`
 })
 </script>
 

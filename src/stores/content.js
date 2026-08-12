@@ -1,14 +1,19 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { databases, storage, DATABASE_ID, COLLECTION_ID, BUCKET_ID, ID } from '@/lib/appwrite'
 
-// Armazenamento local — não depende do Appwrite para funcionar.
-// Assim o painel admin funciona mesmo sem o banco de dados configurado.
-const STORAGE_KEY = 'dra_renata_site_content_v1'
+// Armazenamento local como fallback com cache inteligente
+const STORAGE_KEY = 'dra_renata_site_content_v3'
+const CACHE_TIMESTAMP_KEY = 'dra_renata_cache_timestamp'
+const CONTENT_DOC_ID = 'main_content' // ID fixo para o documento principal
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos em milissegundos
 
 const defaultContent = {
   // ─── Identidade do site ───
   site: {
     name: 'Dra. Renata',
+    pageTitle: 'Dra. Renata - Psicóloga',
+    favicon: '',
     tagline: 'Cuidando da sua saúde mental com profissionalismo e empatia.',
     crp: 'XX/XXXXX',
     location: 'São Paulo, SP',
@@ -21,7 +26,8 @@ const defaultContent = {
     brand: 'Dra. Renata',
     items: [
       { id: 'sobre', label: 'SOBRE MIM', target: 'sobre' },
-      { id: 'diferenciais', label: 'DIFERENCIAIS', target: 'diferenciais' },
+      { id: 'beneficios', label: 'BENEFÍCIOS', target: 'beneficios' },
+      { id: 'servicos', label: 'SERVIÇOS', target: 'servicos' },
       { id: 'agenda', label: 'AGENDA', target: 'agenda' },
       { id: 'depoimentos', label: 'DEPOIMENTOS', target: 'depoimentos' },
     ],
@@ -58,6 +64,25 @@ const defaultContent = {
       },
     },
     {
+      id: 'beneficios',
+      type: 'benefits',
+      title: 'BENEFÍCIOS',
+      enabled: true,
+      content: {
+        label: 'Por que fazer terapia?',
+        heading: 'O que a terapia pode <span class="accent">fazer por você.</span>',
+        intro: 'Cuidar da sua saúde mental é um ato de coragem e amor-próprio. Descubra como a psicoterapia pode transformar sua vida.',
+        items: [
+          { icon: 'bi bi-heart-pulse', title: 'Autoconhecimento', desc: 'Entenda seus pensamentos, emoções e comportamentos com mais clareza.' },
+          { icon: 'bi bi-shield-check', title: 'Ferramentas para a vida', desc: 'Desenvolva estratégias práticas para lidar com desafios e situações de crise.' },
+          { icon: 'bi bi-people', title: 'Relacionamentos saudáveis', desc: 'Melhore sua comunicação e fortaleça vínculos com quem você ama.' },
+          { icon: 'bi bi-sun', title: 'Bem-estar duradouro', desc: 'Reduza ansiedade e estresse, conquistando mais equilíbrio e qualidade de vida.' },
+          { icon: 'bi bi-compass', title: 'Tomada de decisões', desc: 'Aprenda a fazer escolhas alinhadas com seus valores e objetivos de vida.' },
+          { icon: 'bi bi-emoji-smile', title: 'Autoestima fortalecida', desc: 'Construa uma relação mais positiva e compassiva consigo mesmo.' },
+        ],
+      },
+    },
+    {
       id: 'diferenciais',
       type: 'approach',
       title: 'DIFERENCIAIS',
@@ -70,6 +95,22 @@ const defaultContent = {
           { icon: 'bi bi-clock', title: 'Atenção sem pressa', desc: 'Sessões com tempo adequado para explorar com profundidade suas questões, impactando em um processo terapêutico mais assertivo.' },
           { icon: 'bi bi-person-heart', title: 'Foco no indivíduo', desc: 'Abordagem personalizada que se ajusta às particularidades e necessidades de cada pessoa, respeitando sua história.' },
           { icon: 'bi bi-shield-heart', title: 'Espaço livre de julgamentos', desc: 'Ambiente seguro e acolhedor onde você pode se expressar livremente, sem medo de preconceitos ou rótulos.' },
+        ],
+      },
+    },
+    {
+      id: 'servicos',
+      type: 'services',
+      title: 'SERVIÇOS',
+      enabled: true,
+      content: {
+        label: 'Modalidades',
+        heading: 'Ofereço diferentes <span class="accent">modalidades de atendimento.</span>',
+        subtitle: 'Escolha a que melhor se adapta às suas necessidades.',
+        items: [
+          { icon: 'bi bi-person', title: 'Terapia Individual', description: 'Atendimento personalizado focado nas suas necessidades específicas.', price: 'R$ 200/sessão' },
+          { icon: 'bi bi-people', title: 'Terapia de Casal', description: 'Acompanhamento para fortalecer a comunicação e o vínculo do casal.', price: 'R$ 280/sessão' },
+          { icon: 'bi bi-camera-video', title: 'Atendimento Online', description: 'Sessões por videochamada com a mesma qualidade do presencial.', price: 'R$ 200/sessão' },
         ],
       },
     },
@@ -98,6 +139,23 @@ const defaultContent = {
           { name: 'Ana Paula', text: 'Dra. Renata é uma excelente profissional. Muito atenciosa, competente e humana. Me ajudou muito em um momento difícil. Recomendo de olhos fechados!' },
           { name: 'Mariana Costa', text: 'Profissional maravilhosa! Muito humana, acolhedora e assertiva. Me sinto muito segura com o processo terapêutico.' },
           { name: 'Fernanda Santos', text: 'A melhor psicóloga que já passei. Extremamente competente e atualizada. O atendimento é diferenciado desde o primeiro contato.' },
+        ],
+      },
+    },
+    {
+      id: 'sobre-mim',
+      type: 'about-section',
+      title: 'SOBRE MIM',
+      enabled: true,
+      content: {
+        label: 'Conheça a Psicóloga',
+        heading: 'Dra. Renata',
+        text: 'Psicóloga clínica com atendimento humanizado e acolhedor. Especialista em acompanhar adultos em processos de autoconhecimento e bem-estar emocional. Minha missão é proporcionar um espaço seguro onde você possa se expressar livremente e encontrar o caminho para uma vida mais equilibrada.',
+        image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&h=700&fit=crop',
+        approachTitle: 'Minha Abordagem',
+        approaches: [
+          { icon: 'bi bi-brain', title: 'Terapia Cognitivo-Comportamental', desc: 'Trabalho com TCC, uma abordagem estruturada e baseada em evidências que ajuda a identificar e modificar padrões de pensamento e comportamento que causam sofrimento.' },
+          { icon: 'bi bi-people', title: 'Atendimento Personalizado', desc: 'Cada pessoa é única. Por isso, adapto as técnicas terapêuticas às necessidades individuais, criando um plano de tratamento personalizado para cada paciente.' },
         ],
       },
     },
@@ -162,7 +220,7 @@ const defaultContent = {
   // ─── Rodapé ───
   footer: {
     ctaLabel: 'PRÓXIMO PASSO',
-    ctaTitle: 'SUA SAÚDE MENTAL É PRIORIDADE.',
+    ctaTitle: 'SUA SAÚDE MENTAL <span class="cta-accent">É PRIORIDADE</span>.',
     ctaButton: 'Agendar consulta',
     social: [
       { name: 'Instagram', url: 'https://instagram.com/drarenata', icon: 'bi bi-instagram' },
@@ -180,6 +238,82 @@ const defaultContent = {
 
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj))
+}
+
+// Carrega conteúdo do AppWrite ou localStorage como fallback
+async function loadFromAppWrite() {
+  try {
+    const doc = await databases.getDocument(DATABASE_ID, COLLECTION_ID, CONTENT_DOC_ID)
+    // O campo 'data' contém o JSON stringificado
+    const parsed = typeof doc.data === 'string' ? JSON.parse(doc.data) : doc.data
+    return parsed
+  } catch (error) {
+    console.warn('Não foi possível carregar do AppWrite, usando localStorage:', error.message)
+    return null
+  }
+}
+
+// Salva conteúdo no AppWrite
+async function saveToAppWrite(data) {
+  try {
+    // Tenta atualizar documento existente
+    try {
+      const doc = await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTION_ID,
+        CONTENT_DOC_ID,
+        { data: JSON.stringify(data) }
+      )
+      console.log('Conteúdo salvo no AppWrite:', doc.$id)
+      return { success: true }
+    } catch (updateError) {
+      // Se não existe (404), cria novo
+      if (updateError.code === 404 || updateError.type === 'document_not_found') {
+        const doc = await databases.createDocument(
+          DATABASE_ID,
+          COLLECTION_ID,
+          CONTENT_DOC_ID,
+          { data: JSON.stringify(data) }
+        )
+        console.log('Novo documento criado no AppWrite:', doc.$id)
+        return { success: true }
+      }
+      throw updateError
+    }
+  } catch (error) {
+    console.error('Erro ao salvar no AppWrite:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Sistema de cache inteligente
+function isCacheValid() {
+  try {
+    const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY)
+    if (!timestamp) return false
+    
+    const cacheAge = Date.now() - parseInt(timestamp)
+    return cacheAge < CACHE_DURATION
+  } catch (e) {
+    return false
+  }
+}
+
+function updateCacheTimestamp() {
+  try {
+    localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString())
+  } catch (e) {
+    console.warn('Não foi possível atualizar timestamp do cache:', e)
+  }
+}
+
+function clearCache() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(CACHE_TIMESTAMP_KEY)
+  } catch (e) {
+    console.warn('Não foi possível limpar cache:', e)
+  }
 }
 
 function loadInitial() {
@@ -236,12 +370,44 @@ export const useContentStore = defineStore('content', () => {
   const loading = ref(false)
   const error = ref(null)
 
+  // Inicializa carregando do AppWrite se disponível (com cache inteligente)
+  async function init(forceRefresh = false) {
+    loading.value = true
+    try {
+      // Se não for refresh forçado e o cache estiver válido, usa cache
+      if (!forceRefresh && isCacheValid()) {
+        console.log('Usando cache local (válido)')
+        const cachedData = loadInitial()
+        content.value = deepClone(cachedData)
+        loading.value = false
+        return
+      }
+
+      // Cache inválido ou refresh forçado - busca do AppWrite
+      console.log('Buscando dados atualizados do AppWrite...')
+      const appwriteData = await loadFromAppWrite()
+      
+      if (appwriteData) {
+        content.value = deepClone(appwriteData)
+        persist() // Atualiza cache local
+        updateCacheTimestamp() // Atualiza timestamp
+      } else {
+        console.log('Usando dados do localStorage como fallback')
+      }
+    } catch (err) {
+      console.error('Erro ao inicializar:', err)
+      error.value = 'Erro ao carregar dados'
+    } finally {
+      loading.value = false
+    }
+  }
+
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(content.value))
       return true
     } catch (e) {
-      error.value = 'Falha ao salvar (o armazenamento pode estar cheio).'
+      error.value = 'Falha ao salvar localmente (o armazenamento pode estar cheio).'
       console.error(e)
       return false
     }
@@ -250,11 +416,17 @@ export const useContentStore = defineStore('content', () => {
   async function fetchContent() {
     loading.value = true
     error.value = null
-    loading.value = false
+    try {
+      await init()
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
     return content.value
   }
 
-  // Salva um objeto inteiro (site, navbar, hero, about, services, contact, footer)
+  // Salva um objeto inteiro (site, navbar, hero, about, services, contact, footer) no AppWrite
   async function updateContent(key, data) {
     try {
       if (content.value[key] !== undefined) {
@@ -262,9 +434,24 @@ export const useContentStore = defineStore('content', () => {
       } else {
         content.value[key] = deepClone(data)
       }
-      const ok = persist()
-      return ok ? { success: true } : { success: false, error: error.value }
+      
+      // Salva localmente primeiro (fallback)
+      persist()
+      updateCacheTimestamp() // Atualiza timestamp do cache
+      
+      // Tenta salvar no AppWrite
+      const result = await saveToAppWrite(content.value)
+      
+      if (!result.success) {
+        error.value = result.error || 'Falha ao salvar no AppWrite'
+        console.warn('Salvo apenas localmente:', result.error)
+      } else {
+        console.log('Conteúdo salvo no AppWrite e cache atualizado')
+      }
+      
+      return result
     } catch (err) {
+      error.value = err.message
       return { success: false, error: err.message }
     }
   }
@@ -273,72 +460,153 @@ export const useContentStore = defineStore('content', () => {
   function getSection(id) {
     return content.value.sections.find((s) => s.id === id)
   }
-  function updateSection(id, data) {
+  
+  async function updateSection(id, data) {
     const idx = content.value.sections.findIndex((s) => s.id === id)
     if (idx !== -1) {
       content.value.sections[idx] = { ...content.value.sections[idx], ...data }
       persist()
+      
+      // Salva no AppWrite
+      const result = await saveToAppWrite(content.value)
+      if (!result.success) {
+        console.warn('Seção atualizada localmente, mas falha ao salvar no AppWrite:', result.error)
+      }
+      
       return { success: true }
     }
     return { success: false, error: 'Seção não encontrada' }
   }
-  function toggleSection(id, enabled) {
+  
+  async function toggleSection(id, enabled) {
     const s = getSection(id)
     if (s) {
       s.enabled = enabled
       persist()
+      
+      // Salva no AppWrite
+      const result = await saveToAppWrite(content.value)
+      if (!result.success) {
+        console.warn('Seção alternada localmente, mas falha ao salvar no AppWrite:', result.error)
+      }
+      
       return { success: true }
     }
     return { success: false, error: 'Seção não encontrada' }
   }
-  function addSection(section) {
+  
+  async function addSection(section) {
     content.value.sections.push(section)
     persist()
+    
+    // Salva no AppWrite
+    const result = await saveToAppWrite(content.value)
+    if (!result.success) {
+      console.warn('Seção adicionada localmente, mas falha ao salvar no AppWrite:', result.error)
+    }
+    
     return { success: true }
   }
-  function removeSection(id) {
+  
+  async function removeSection(id) {
     const idx = content.value.sections.findIndex((s) => s.id === id)
     if (idx !== -1) {
       content.value.sections.splice(idx, 1)
       persist()
+      
+      // Salva no AppWrite
+      const result = await saveToAppWrite(content.value)
+      if (!result.success) {
+        console.warn('Seção removida localmente, mas falha ao salvar no AppWrite:', result.error)
+      }
+      
       return { success: true }
     }
     return { success: false, error: 'Seção não encontrada' }
   }
-  function moveSection(id, dir) {
+  
+  async function moveSection(id, dir) {
     const idx = content.value.sections.findIndex((s) => s.id === id)
     const swap = idx + dir
     if (idx !== -1 && swap >= 0 && swap < content.value.sections.length) {
       const arr = content.value.sections
       ;[arr[idx], arr[swap]] = [arr[swap], arr[idx]]
       persist()
+      
+      // Salva no AppWrite
+      const result = await saveToAppWrite(content.value)
+      if (!result.success) {
+        console.warn('Seção movida localmente, mas falha ao salvar no AppWrite:', result.error)
+      }
+      
       return { success: true }
     }
     return { success: false }
   }
 
   async function uploadImage(file) {
-    return new Promise((resolve) => {
-      if (!file) return resolve({ success: false, error: 'Nenhum arquivo selecionado.' })
+    try {
+      if (!file) return { success: false, error: 'Nenhum arquivo selecionado.' }
       if (!file.type.startsWith('image/'))
-        return resolve({ success: false, error: 'O arquivo precisa ser uma imagem.' })
-      if (file.size > 2 * 1024 * 1024)
-        return resolve({ success: false, error: 'Imagem muito grande (máx. 2MB).' })
-      const reader = new FileReader()
-      reader.onload = () => resolve({ success: true, url: reader.result })
-      reader.onerror = () => resolve({ success: false, error: 'Falha ao ler o arquivo.' })
-      reader.readAsDataURL(file)
-    })
+        return { success: false, error: 'O arquivo precisa ser uma imagem.' }
+      if (file.size > 5 * 1024 * 1024)
+        return { success: false, error: 'Imagem muito grande (máx. 5MB).' }
+
+      // Tenta fazer upload para o AppWrite Storage
+      try {
+        const uploadedFile = await storage.createFile(
+          BUCKET_ID,
+          ID.unique(),
+          file
+        )
+        
+        // Obtém URL da imagem
+        const imageUrl = storage.getFileView(BUCKET_ID, uploadedFile.$id)
+        
+        console.log('Imagem enviada para AppWrite:', uploadedFile.$id)
+        return { success: true, url: imageUrl, fileId: uploadedFile.$id }
+      } catch (storageError) {
+        console.warn('Falha ao enviar para AppWrite Storage, usando base64:', storageError.message)
+        
+        // Fallback: converte para base64
+        return new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve({ success: true, url: reader.result })
+          reader.onerror = () => resolve({ success: false, error: 'Falha ao ler o arquivo.' })
+          reader.readAsDataURL(file)
+        })
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
   }
 
-  async function deleteImage() {
-    return { success: true }
+  async function deleteImage(fileId) {
+    try {
+      if (fileId) {
+        await storage.deleteFile(BUCKET_ID, fileId)
+        console.log('Imagem deletada do AppWrite:', fileId)
+      }
+      return { success: true }
+    } catch (error) {
+      console.warn('Falha ao deletar imagem do AppWrite:', error.message)
+      return { success: true } // Não falha se não conseguir deletar
+    }
+  }
+
+  // Força refresh do cache (útil após edições no admin)
+  async function refreshCache() {
+    console.log('Forçando refresh do cache...')
+    clearCache()
+    await init(true) // forceRefresh = true
   }
 
   return {
     content,
     loading,
     error,
+    init,
+    refreshCache,
     fetchContent,
     updateContent,
     getSection,

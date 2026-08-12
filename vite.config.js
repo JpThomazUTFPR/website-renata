@@ -14,4 +14,16 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      '/api/calendar-ics': {
+        target: 'https://calendar.google.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace('/api/calendar-ics', ''),
+        headers: {
+          Host: 'calendar.google.com',
+        },
+      },
+    },
+  },
 })

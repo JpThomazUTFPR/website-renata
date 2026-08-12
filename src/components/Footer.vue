@@ -4,7 +4,7 @@
       <!-- CTA Block -->
       <div class="footer-cta">
         <span class="cta-label">{{ footer.ctaLabel }}</span>
-        <h2 class="cta-title">{{ footer.ctaTitle.replace('É PRIORIDADE.', '<span class="cta-accent">É PRIORIDADE</span>.') }}</h2>
+        <h2 class="cta-title" v-html="footer.ctaTitle"></h2>
         <a :href="whatsappLink" target="_blank" class="cta-btn">
           <span>{{ footer.ctaButton }}</span>
           <div class="cta-arrow"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></div>
@@ -31,7 +31,7 @@
         <div class="footer-contact">
           <span class="footer-label">CONTATO</span>
           <p class="contact-loc">{{ site.location }}</p>
-          <a :href="whatsappLink" target="_blank" class="contact-phone">{{ contact.phone }}</a>
+          <a :href="'https://wa.me/' + site.whatsappNumber" target="_blank" class="contact-phone">{{ contact.phone }}</a>
           <p class="contact-email">{{ contact.email }}</p>
         </div>
         <div class="footer-location">

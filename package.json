@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "setup-appwrite": "node setup-appwrite.js"
   },
   "dependencies": {
     "@appwrite.io/pink-icons": "^1.0.0",

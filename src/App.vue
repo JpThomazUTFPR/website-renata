@@ -1,20 +1,38 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
 import WhatsAppButton from '@/components/WhatsAppButton.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useContentStore } from '@/stores/content'
 
 const authStore = useAuthStore()
+const contentStore = useContentStore()
 const route = useRoute()
 
-// Oculta a navbar/footer do site nas rotas administrativas e de login
+// Atualiza título da página e favicon dinamicamente a partir do admin
+watch(() => contentStore.content.site, (site) => {
+  if (site.pageTitle) {
+    document.title = site.pageTitle
+  }
+  if (site.favicon) {
+    let link = document.querySelector("link[rel='icon']")
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = site.favicon
+  }
+}, { immediate: true, deep: true })
+
 const isAdminRoute = computed(() =>
   route.path.startsWith('/admin') || route.path === '/login'
 )
 
 authStore.checkAuth()
+contentStore.init()
 </script>
 
 <template>

@@ -8,6 +8,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (email, password) => {
     try {
+      // Verifica se já existe uma sessão ativa e faz logout
+      try {
+        await account.deleteSession('current')
+      } catch (e) {
+        // Ignora erro se não houver sessão ativa
+      }
+      
+      // Cria nova sessão
       await account.createEmailPasswordSession(email, password)
       const session = await account.get()
       user.value = session
@@ -15,6 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('isAdminAuthenticated', 'true')
       return { success: true }
     } catch (error) {
+      console.error('Login error:', error)
       return { success: false, error: error.message }
     }
   }

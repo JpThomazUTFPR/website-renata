@@ -17,7 +17,7 @@ import LoginView from './views/LoginView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
-  { path: '/sobre', name: 'about', component: AboutView },
+  { path: '/sobre', redirect: '/#sobre-mim' }, // Redireciona para seção na home
   { path: '/servicos', name: 'services', component: ServicesView },
   { path: '/contato', name: 'contact', component: ContactView },
   { path: '/admin', name: 'admin', component: AdminView, meta: { requiresAuth: true } },
